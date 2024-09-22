@@ -1,6 +1,6 @@
 # Sketch2Num
 
-<p>Sketch2Num is a machine learning application that can classify handwritten digits. Users can either draw a digit on a dashboard, or present a number to the app through their camera, and the app will predict the digit in real-time. The project is built using Python and scikit-learn. </p>p
+<p>Sketch2Num is a machine learning application that can classify handwritten digits. Users can either draw a digit on a dashboard, or present a number to the app through their camera, and the app will predict the digit in real-time. The project is built using Python and scikit-learn. </p>
 
 ## Features
 <ul> Digit Dashboard: Users can draw any digit (0-9) on the interface, and the app will predict what number it is. </ul>
