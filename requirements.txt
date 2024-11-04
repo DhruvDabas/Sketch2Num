@@ -1,0 +1,14 @@
+# Required libraries Download
+Pillow==9.0.1
+torch==1.12.1
+torchvision==0.13.1
+PyQt5==5.15.7
+numpy==1.22.4
+
+* `Pillow`: For image processing.
+* `torch` and `torchvision`: For PyTorch machine learning framework.
+* `PyQt5`: For GUI development.
+* `numpy`: For numerical computations.
+
+To install the dependencies from the requirements.txt file, run:
+pip install -r requirements.txt
