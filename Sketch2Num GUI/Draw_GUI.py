@@ -1,136 +1,363 @@
-# Drawing Application Using Python
-
-#importing all the necessary Libraries
-
-from tkinter import *
-from tkinter.ttk import Scale
-from tkinter import colorchooser,filedialog,messagebox
-import PIL.ImageGrab as ImageGrab
+import tkinter
+import tkinter.colorchooser
+import customtkinter
+from PIL import ImageGrab, Image
+import cv2
 
 
-#Defining Class and constructor of the Program
-class Draw():
-    def __init__(self,root):
+class Draw(customtkinter.CTkFrame):
+    def __init__(self, master):
+        self.Master_Frame = master
+        self.Master_Frame.configure(fg_color = 'gray')
 
-#Defining title and Size of the Tkinter Window GUI
-        self.root =root
-        self.root.title("Copy Assignment Painter")
-#         self.root.geometry("810x530")
-        self.root.configure(background="white")
-#         self.root.resizable(0,0)
- 
-#variables for pointer and Eraser   
-        self.pointer= "black"
-        self.erase="white"
+        # Grid Configuration for the Main Frame.
+        self.Master_Frame.grid_columnconfigure(0, weight = 1)
+        self.Master_Frame.grid_columnconfigure(1, weight = 3)
+        self.Master_Frame.grid_rowconfigure(0, weight = 1)
 
-#Widgets for Tkinter Window
-    
-# Configure the alignment , font size and color of the text
-        text=Text(root)
-        text.tag_configure("tag_name", justify='center', font=('arial',25),background='#292826',foreground='orange')
-
-# Insert a Text
-        text.insert("1.0", "Drawing Application in Python")
-
-# Add the tag for following given text
-        text.tag_add("tag_name", "1.0", "end")
-        text.pack()
+        # Old Coordinates of Mouse Position (Initially set to None to get the current Location on press)
+        self.old_x = None
+        self.old_y = None
         
-# Pick a color for drawing from color pannel
-        self.pick_color = LabelFrame(self.root,text='Colors',font =('arial',15),bd=5,relief=RIDGE,bg="white")
-        self.pick_color.place(x=0,y=40,width=90,height=185)
+        # Dictionaries (ToolsColor, Width) to Hold Color and Width Value for What's InHand.
+        self.ToolsColor = {
+            'Pencil' : 'Black',
+            'Eraser' : 'White',
+            'CanvasBG' : 'White',
+        }
+        self.Width = {
+            'Pencil' : 30,
+            'Eraser' : 100,
+        }
 
-        colors = ['blue','red','green', 'orange','violet','black','yellow','purple','pink','gold','brown','indigo']
-        i=j=0
-        for color in colors:
-            Button(self.pick_color,bg=color,bd=2,relief=RIDGE,width=3,command=lambda col=color:self.select_color(col)).grid(row=i,column=j)
-            i+=1
-            if i==6:
-                i=0
-                j=1
+        # What is Currently in Use.
+        self.InHand = 'Pencil'
+        
+        # Dictionary to Access Color in the ColorPallet Frame and Variable PrevClicked to change Border Color.
+        self.Color_Button_Dict = {}
+        self.PrevClicked = False
 
- # Erase Button and its properties   
-        self.eraser_btn= Button(self.root,text="Eraser",bd=4,bg='white',command=self.eraser,width=9,relief=RIDGE)
-        self.eraser_btn.place(x=0,y=197)
+        # All Images Used.
+        self.Pencil = customtkinter.CTkImage(
+            light_image = Image.open(r'Images\Pencil_light.png'),
+            dark_image = Image.open(r'Images\Pencil_dark.png'),
+            size = (40, 40)
+        )
 
-# Reset Button to clear the entire screen 
-        self.clear_screen= Button(self.root,text="Clear Screen",bd=4,bg='white',command= lambda : self.background.delete('all'),width=9,relief=RIDGE)
-        self.clear_screen.place(x=0,y=227)
+        self.Eraser = customtkinter.CTkImage(
+            light_image = Image.open(r'Images\Eraser_light.png'),
+            dark_image = Image.open(r'Images\Eraser_dark.png'),
+            size = (40, 40)
+        )
 
-# Save Button for saving the image in local computer
-        self.save_btn= Button(self.root,text="ScreenShot",bd=4,bg='white',command=self.save_drawing,width=9,relief=RIDGE)
-        self.save_btn.place(x=0,y=257)
+        self.Fill = customtkinter.CTkImage(
+            light_image = Image.open(r'Images\Fill_light.png'),
+            dark_image = Image.open(r'Images\Fill_dark.png'),
+            size = (40, 40)
+        )
 
-# Background Button for choosing color of the Canvas
-        self.bg_btn= Button(self.root,text="Background",bd=4,bg='white',command=self.canvas_color,width=9,relief=RIDGE)
-        self.bg_btn.place(x=0,y=287)
+        self.Trash = customtkinter.CTkImage(
+            light_image = Image.open(r'Images\Trash_light.png'),
+            dark_image = Image.open(r'Images\Trash_dark.png'),
+            size = (40, 40)
+        )
 
+        
+        # Menu Frame (Where pen, eraser, colorpicker resides).
+        self.Menu_Frame = customtkinter.CTkFrame(self.Master_Frame, corner_radius = 0)
+        self.Menu_Frame.grid(
+            row = 0,
+            column = 0,
+            sticky = 'news'
+        )
 
-#Creating a Scale for pointer and eraser size
-        self.pointer_frame= LabelFrame(self.root,text='size',bd=5,bg='white',font=('arial',15,'bold'),relief=RIDGE)
-        self.pointer_frame.place(x=0,y=320,height=200,width=70)
+        # Canvas Frame (Where we will draw).
+        self.Canvas_Frame = customtkinter.CTkFrame(self.Master_Frame, fg_color = 'white')
+        self.Canvas_Frame.grid(
+            row = 0,
+            column = 1,
+            sticky = 'news'
+        )
 
-        self.pointer_size =Scale(self.pointer_frame,orient=VERTICAL,from_ =48 , to =0, length=168)
-        self.pointer_size.set(1)
-        self.pointer_size.grid(row=0,column=1,padx=15)
+        # Create tkinter.Canvas() inside Canvas Frame.
+        self.Canvas = tkinter.Canvas(master = self.Canvas_Frame, bg = self.ToolsColor.get('CanvasBG'))
+        self.Canvas.pack(fill = 'both', expand = True)
 
+        # KeyBinds to Draw on Mouse Click with Motion.
+        self.Canvas.bind('<B1-Motion>', self.Paint)
+        self.Canvas.bind('<ButtonRelease-1>', self.Reset)
 
-#Defining a background color for the Canvas 
-        self.background = Canvas(self.root,bg='white',bd=5,relief=GROOVE,height=470,width=680)
-        self.background.place(x=80,y=40)
+        # Creating All the Widgets.
+        self.MenuWidgets()
 
+ # 1. Handles Painting.       
+    def Paint(self, Coordinates):
+        # if old_x, old_y are None then skip.
+        if self.old_x and self.old_y:
+            self.Canvas.create_line(
+                self.old_x,
+                self.old_y,
+                Coordinates.x,
+                Coordinates.y,
+                width = self.Width.get(self.InHand),
+                fill = self.ToolsColor.get(self.InHand),
+                capstyle = 'round',
+                smooth = True,
+                tags = self.InHand
+            )
 
-#Bind the background Canvas with mouse click
-        self.background.bind("<B1-Motion>",self.paint) 
+        # Set the Old Mouse Coordinates to New Ones.
+        self.old_x = Coordinates.x
+        self.old_y = Coordinates.y
 
+    def Reset(self, Coordinates):
+        self.old_x = None
+        self.old_y = None
 
-# Functions are defined here
+# 2. Makes Preparation for the Selected Tool.
+    def PencilOnClick(self):
+        # UnBind Fill.
+        self.Canvas.unbind('<Button-1>')
 
-# Paint Function for Drawing the lines on Canvas
-    def paint(self,event):       
-        x1,y1 = (event.x-2), (event.y-2)  
-        x2,y2 = (event.x+2), (event.y+2)  
+        # Bind Painting Feature.
+        self.Canvas.bind('<B1-Motion>', self.Paint)
+        self.Canvas.bind('<ButtonRelease-1>', self.Reset)
 
-        self.background.create_oval(x1,y1,x2,y2,fill=self.pointer,outline=self.pointer,width=self.pointer_size.get())
+        # Specify What's In Hand.
+        self.InHand = 'Pencil'
 
-# Function for choosing the color of pointer  
-    def select_color(self,col):
-        self.pointer = col
+    def EraserOnClick(self):
+        # UnBind Fill.
+        self.Canvas.unbind('<Button-1>')
 
-# Function for defining the eraser
-    def eraser(self):
-        self.pointer= self.erase
+        # Bind Painting Feature.
+        self.Canvas.bind('<B1-Motion>', self.Paint)
+        self.Canvas.bind('<ButtonRelease-1>', self.Reset)
+    
+        # Specify What's In Hand.
+        self.InHand = 'Eraser'
+        #self.ColorPicker.configure(state = 'disabled')
 
-# Function for choosing the background color of the Canvas    
-    def canvas_color(self):
-        color=colorchooser.askcolor()
-        self.background.configure(background=color[1])
-        self.erase= color[1]
+    def FillOnClick(self):
+        # UnBind Painting Feature.
+        self.Canvas.unbind('<B1-Motion>')
+        self.Canvas.unbind('<ButtonRelease-1>')
 
-# Function for saving the image file in Local Computer
-    def save_drawing(self):
-        try:
-            # self.background update()
-            file_ss =filedialog.asksaveasfilename(defaultextension='jpg')
-            #print(file_ss)
-            x=self.root.winfo_rootx() + self.background.winfo_x()
-            #print(x, self.background.winfo_x())
-            y=self.root.winfo_rooty() + self.background.winfo_y()
-            #print(y)
+        # Bind Fill.
+        self.Canvas.bind('<Button-1>', self.ChangeCanvasBG)
 
-            x1= x + self.background.winfo_width() 
-            #print(x1)
-            y1= y + self.background.winfo_height()
-            #print(y1)
-            ImageGrab.grab().crop((x , y, x1, y1)).save(file_ss)
-            messagebox.showinfo('Screenshot Successfully Saved as' + str(file_ss))
+        # Specify What's In Hand.
+        self.InHand = 'CanvasBG'
 
-        except:
-            print("Error in saving the screenshot")
+    def ClearOnClick(self):
+        self.Canvas.delete('all')
 
+# 3. Change Width and Color of the Tools.
+    def ChangeWidth(self, W):
+        self.Width[self.InHand] = W
 
-def Start(text):
-    if "__name__" == text:
-        root = Tk()
-        p = Draw(root)
-        root.mainloop()
+    def ColorPicker(self):
+        ChooseColor = tkinter.colorchooser.askcolor(color = self.ToolsColor.get(self.InHand)) [1]     # askcolor return 2 value RGB[0], Hex[1]
+        
+        self.ToolsColor['Pencil'] = ChooseColor
+        self.ToolsColor['CanvasBG'] = ChooseColor
+
+    def ChangeCanvasBG(self, Coordinates):
+        self.Canvas['bg'] = self.ToolsColor[self.InHand]
+        self.Canvas.itemconfig('Eraser', fill = self.ToolsColor.get('CanvasBG'))
+
+# 4. 
+    def ScreenShot(self):
+        x = self.Canvas.winfo_rootx()
+        y = self.Canvas.winfo_rooty()
+        width = self.Canvas.winfo_width()
+        height = self.Canvas.winfo_height()
+
+        # To Resize the Image into a Square.
+        ReSize = round((width - height)/2)
+
+        # Taking ScreenShot, Turning it GrayScale and ReSize it.
+        ScreenShot = ImageGrab.grab((x + ReSize, y, x + width - ReSize, y + height)).convert('L')
+        ScreenShot = ScreenShot.resize((28, 28), Image.LANCZOS)
+        ScreenShot.save('ScreenShot.png')  # Saves (28, 28) image in SKetch2Num GUI folder with as ScreenShot.png.
+
+    def Tools(self):
+        # Change Padding etc. in one place.
+        padx = 5
+        pady = 5
+        corner_radius = 5
+        border_width = 2
+        border_color = 'silver'
+        height = 40
+        width = 40
+
+        # Pen Icon for selecting Pen.
+        self.Pencil_Button = customtkinter.CTkButton(
+            master = self.Tools_Frame,
+            width = width,
+            height = height,
+            corner_radius = corner_radius,
+            border_width = border_width,
+            fg_color = 'transparent',
+            border_color = border_color,
+            image = self.Pencil,
+            text = '',
+            command = self.PencilOnClick
+        )
+        self.Pencil_Button.pack(side = 'left', padx = padx, pady = pady)
+
+        # Eraser Icon for Selecting Eraser.
+        self.Eraser_Button = customtkinter.CTkButton(
+            master = self.Tools_Frame,
+            width = width,
+            height = height,
+            corner_radius = corner_radius,
+            border_width = border_width,
+            fg_color = 'transparent',
+            border_color = border_color,
+            image = self.Eraser,
+            text = '',
+            command = self.EraserOnClick
+        )
+        self.Eraser_Button.pack(side = 'left', padx = padx, pady = pady)
+
+        # Fill Icon for Selecting Fill.
+        self.Fill_Button = customtkinter.CTkButton(
+            master = self.Tools_Frame,
+            width = width,
+            height = height,
+            corner_radius = corner_radius,
+            border_width = border_width,
+            fg_color = 'transparent',
+            border_color = border_color,
+            image = self.Fill,
+            text = '',
+            command = self.FillOnClick
+        )
+        self.Fill_Button.pack(side = 'left', padx = padx, pady = pady)
+
+        # Clear Icon for Clearing Screen.
+        self.Clear_Button = customtkinter.CTkButton(
+            master = self.Tools_Frame,
+            width = width,
+            height = height,
+            corner_radius = corner_radius,
+            border_width = border_width,
+            fg_color = 'transparent',
+            border_color = border_color,
+            image = self.Trash,
+            text = '',
+            command = self.ClearOnClick
+        )
+        self.Clear_Button.pack(side = 'left', padx = padx, pady = pady)
+
+    def ColorPalette(self):
+        # Segmented Buttons For Color Selecting.
+        Colors = ['#000000', '#7F7F7F', '#ED1C24', '#FF7F27', '#FFF200', '#FFFFFF', '#22B14C', '#00A2E8', '#A349A4', '#B5E61D']
+        
+        Col = Row = 0
+
+        for Color in Colors:
+            Color_Button_Name = f'Button_{Row}_{Col}'
+
+            Color_Button = customtkinter.CTkButton(
+                master = self.Colors_Frame,
+                width = 50,
+                height = 50,
+                text = '',
+                fg_color = Color,
+                border_color = self.Menu_Frame.cget('fg_color'),
+                border_width = 4,
+                corner_radius = 10,
+                hover = False,
+                command = lambda color = Color : self.SelectedColorButton(color)                
+            )
+            Color_Button.grid(row = Row, column = Col, padx = 5, pady = 5)
+
+            Color_Button.bind('<Enter>', lambda Event, ButtonName = Color_Button_Name: self.PaletteOnHover(ButtonName))
+            Color_Button.bind('<Leave>', lambda Event, ButtonName = Color_Button_Name: self.PaletteOnLeave(ButtonName))
+
+            self.Color_Button_Dict[Color_Button_Name] = Color_Button
+
+            Col += 1
+            if Col == 5:
+                Col = 0
+                Row = 1
+
+    def MnistModel(self):
+        pass
+
+    def MenuWidgets(self):
+        # Tools Frame To Store Tool Buttons.
+        self.Tools_Frame = customtkinter.CTkFrame(
+            self.Menu_Frame,
+            fg_color = self.Menu_Frame.cget('fg_color'),
+            border_color = 'silver',
+            border_width = 1,
+        )
+        self.Tools_Frame.pack(side = 'top')
+        self.Tools()
+
+        # Color Pallet Frame to Store Color Buttons.
+        self.Colors_Frame = customtkinter.CTkFrame(
+            self.Menu_Frame,
+            fg_color = self.Menu_Frame.cget('fg_color'),
+            border_color = 'silver',
+            border_width = 1,
+        )
+        self.Colors_Frame.pack(side = 'top')
+        self.ColorPalette()
+
+        # Shows The Color Picked By User.
+        self.ColorPicked_Button = customtkinter.CTkButton(
+            self.Menu_Frame,
+            width = 50,
+            height = 50,
+            text = '',
+            fg_color = 'black',
+            border_color = 'silver',
+            border_width = 5,
+            corner_radius = 25,
+            hover = False,
+        )
+        self.ColorPicked_Button.pack(side = 'top')
+
+        # Click ScreenShot of The Canvas.
+        self.ScreenShot_Button = customtkinter.CTkButton(
+            self.Menu_Frame,
+            width = 0,
+            height = 0,
+            image = None,
+            text = 'ScreenShot',
+            font = (None, 20),
+            command = self.ScreenShot
+        )
+        self.ScreenShot_Button.pack(side = 'top')
+
+        # Run Mnist Model on the ScreenShot.
+        self.Predict_Button = customtkinter.CTkButton(
+            self.Menu_Frame,
+            width = 0,
+            height = 0,
+            image = None,
+            text = 'Predict',
+            font = (None, 20),
+            command = self.MnistModel
+        )
+        self.Predict_Button.pack(side = 'bottom', padx = 20, pady = 20)
+                
+    def SelectedColorButton(self, Color):
+        self.ToolsColor['Pencil'] = Color
+        self.ToolsColor['CanvasBG'] = Color
+        self.ColorPicked_Button.configure(fg_color = Color)
+    
+    def PaletteOnHover(self, ButtonName):
+        Button = self.Color_Button_Dict.get(ButtonName)
+        Button.configure(border_color = 'gray')
+
+    def PaletteOnLeave(self, ButtonName):
+        Button = self.Color_Button_Dict.get(ButtonName)
+        Button.configure(border_color = self.Menu_Frame.cget('fg_color'))
+
+        
+
