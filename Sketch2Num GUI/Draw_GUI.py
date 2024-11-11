@@ -1,8 +1,9 @@
 import tkinter
 import tkinter.colorchooser
 import customtkinter
-from PIL import ImageGrab, Image
-import cv2
+from PIL import ImageGrab, Image, ImageColor
+import numpy as np
+import Model_Connector
 
 
 class Draw(customtkinter.CTkFrame):
@@ -23,7 +24,7 @@ class Draw(customtkinter.CTkFrame):
         self.ToolsColor = {
             'Pencil' : 'Black',
             'Eraser' : 'White',
-            'CanvasBG' : 'White',
+            'CanvasBG' : 'Black',
         }
         self.Width = {
             'Pencil' : 30,
@@ -80,7 +81,7 @@ class Draw(customtkinter.CTkFrame):
         )
 
         # Create tkinter.Canvas() inside Canvas Frame.
-        self.Canvas = tkinter.Canvas(master = self.Canvas_Frame, bg = self.ToolsColor.get('CanvasBG'))
+        self.Canvas = tkinter.Canvas(master = self.Canvas_Frame, bg = 'white')
         self.Canvas.pack(fill = 'both', expand = True)
 
         # KeyBinds to Draw on Mouse Click with Motion.
@@ -176,10 +177,52 @@ class Draw(customtkinter.CTkFrame):
         # To Resize the Image into a Square.
         ReSize = round((width - height)/2)
 
-        # Taking ScreenShot, Turning it GrayScale and ReSize it.
-        ScreenShot = ImageGrab.grab((x + ReSize, y, x + width - ReSize, y + height)).convert('L')
-        ScreenShot = ScreenShot.resize((28, 28), Image.LANCZOS)
+        # Taking ScreenShot of Canvas, Getting Color of Canvas & Pencil in RGB format
+        ScreenShot = ImageGrab.grab((x + ReSize, y, x + width - ReSize, y + height))
+
+        CanvasRGB = ImageColor.getcolor(self.Canvas.cget('bg'), "RGB")
+        PencilRGB = ImageColor.getcolor(self.Canvas.itemcget('Pencil', 'fill'), "RGB")
+
+        # Turning PIL.Image to np.array.
+        ScreenShot = np.array(ScreenShot)
+
+        # Color to Replace From Canvas.
+        CanvasReplace = np.array(CanvasRGB) 
+        PencilReplace = np.array(PencilRGB)
+
+        # Color to Replace with.
+        CanvasNew = np.array([0, 0, 0])
+        PencilNew = np.array([255, 255, 255])
+
+        # Mask That contains info on where that Colored Pixel is in the Image.
+        CanvasMask = np.all(ScreenShot == CanvasReplace, axis=2)
+        PencilMask = np.all(ScreenShot == PencilReplace, axis=2)
+
+        # Replace those data points with the new color.
+        ScreenShot[CanvasMask] = CanvasNew
+        ScreenShot[PencilMask] = PencilNew
+
+        # Convert the image back to PIL.Image, Resize it and Save.
+        ScreenShot = Image.fromarray(ScreenShot)
+
+        ScreenShot = ScreenShot.resize((28, 28), Image.Resampling.LANCZOS)
         ScreenShot.save('ScreenShot.png')  # Saves (28, 28) image in SKetch2Num GUI folder with as ScreenShot.png.
+
+        self.ScreenShot_Button.forget()
+        self.Predict_Button.pack(side = 'bottom', padx = 20, pady = 20)
+
+    def Predict(self):
+        image_path = r'C:\Users\aryan\Downloads\Sketch2Num GUI\ScreenShot.png'
+        Number_Predicted = Model_Connector.PredictImage(image_path)
+        
+        new_window = customtkinter.CTkToplevel()
+        new_window.title("Prediction")
+
+        label = customtkinter.CTkLabel(new_window, text=f"Predicted Answer is : {Number_Predicted}")
+        label.pack(padx=20, pady=20)
+
+        self.Predict_Button.forget()
+        self.ScreenShot_Button.pack(side = 'bottom', padx = 20, pady = 20)
 
     def Tools(self):
         # Change Padding etc. in one place.
@@ -284,9 +327,6 @@ class Draw(customtkinter.CTkFrame):
                 Col = 0
                 Row = 1
 
-    def MnistModel(self):
-        pass
-
     def MenuWidgets(self):
         # Tools Frame To Store Tool Buttons.
         self.Tools_Frame = customtkinter.CTkFrame(
@@ -315,7 +355,7 @@ class Draw(customtkinter.CTkFrame):
             height = 50,
             text = '',
             fg_color = 'black',
-            border_color = 'silver',
+            border_color = '#D3D3D3',
             border_width = 5,
             corner_radius = 25,
             hover = False,
@@ -332,7 +372,7 @@ class Draw(customtkinter.CTkFrame):
             font = (None, 20),
             command = self.ScreenShot
         )
-        self.ScreenShot_Button.pack(side = 'top')
+        self.ScreenShot_Button.pack(side = 'bottom', padx = 20, pady = 20)
 
         # Run Mnist Model on the ScreenShot.
         self.Predict_Button = customtkinter.CTkButton(
@@ -342,9 +382,8 @@ class Draw(customtkinter.CTkFrame):
             image = None,
             text = 'Predict',
             font = (None, 20),
-            command = self.MnistModel
+            command = self.Predict
         )
-        self.Predict_Button.pack(side = 'bottom', padx = 20, pady = 20)
                 
     def SelectedColorButton(self, Color):
         self.ToolsColor['Pencil'] = Color
@@ -353,7 +392,7 @@ class Draw(customtkinter.CTkFrame):
     
     def PaletteOnHover(self, ButtonName):
         Button = self.Color_Button_Dict.get(ButtonName)
-        Button.configure(border_color = 'gray')
+        Button.configure(border_color = '#D3D3D3')
 
     def PaletteOnLeave(self, ButtonName):
         Button = self.Color_Button_Dict.get(ButtonName)

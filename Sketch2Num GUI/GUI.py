@@ -53,12 +53,12 @@ class MainWindow(customtkinter.CTk):
             size = (35, 35)
         )
 
-    # 3. Theme Button's Image
-        # self.Theme_Image = customtkinter.CTkImage(
-        #     light_image = Image.open(r'Images\Theme_Light.png'),
-        #     dark_image = Image.open(r'Images\Theme_Dark.png'),
-        #     size = (35, 35)
-        # )
+    #3. Theme Button's Image
+        self.Theme_Image = customtkinter.CTkImage(
+            light_image = Image.open(r'Images\Theme_Light.png'),
+            dark_image = Image.open(r'Images\Theme_Dark.png'),
+            size = (35, 35)
+        )
 
 
 # NavBar Buttons.
@@ -116,7 +116,8 @@ class MainWindow(customtkinter.CTk):
             command = self.GitHub,
             compound = 'left',
             fg_color = self.NavBar_Frame.cget('fg_color'),
-            text_color = self.TextColor
+            text_color = self.TextColor,
+            hover = False
         )
 
     # 5. Dark/Light (Theme) Toggle Button.
@@ -124,20 +125,21 @@ class MainWindow(customtkinter.CTk):
             master = self.NavBar_Frame,
             width = 0,
             height = 0,
-            image = None,
-            text = 'Theme',
+            image = self.Theme_Image,
+            text = '',
             font = (None, 20),
             command = self.Theme_Mode,
             compound = 'right',
             fg_color = self.NavBar_Frame.cget('fg_color'),
-            text_color = self.TextColor
+            text_color = self.TextColor,
+            hover = False
         )
     
     # Adding all the Buttons to the MainWindow.
         self.Theme_Button.pack(side = 'right')
         self.GitHub_Button.pack(side = 'right')
-        self.About_Us_Button.pack(side = 'right')
-        self.Documentation_Button.pack(side = 'right')
+        #self.About_Us_Button.pack(side = 'right')
+        #self.Documentation_Button.pack(side = 'right')
         self.Sketch2Num_Button.pack(side = 'left')
 
 # Setting the Application.
@@ -147,7 +149,7 @@ class MainWindow(customtkinter.CTk):
 
     # 1. Sketch2Num Button On-Click Action.
     def Mnist_Model(self):
-        self.Sketch_Camera_Frame = customtkinter.CTkTabview(self)
+        self.Sketch_Camera_Frame = customtkinter.CTkFrame(self)
         self.Sketch_Camera_Frame.pack(
             side = 'top',
             anchor = 's',
@@ -157,10 +159,7 @@ class MainWindow(customtkinter.CTk):
             expand = True
         )
         
-        self.tab1 = self.Sketch_Camera_Frame.add('Sketch')
-        self.tab2 = self.Sketch_Camera_Frame.add('Camera')
-        
-        Draw_GUI.Draw(self.tab1)
+        Draw_GUI.Draw(self.Sketch_Camera_Frame)
         
     # 2. Documentation Button On-Click Action.
     def Documentation(self):
@@ -190,11 +189,11 @@ class MainWindow(customtkinter.CTk):
         )
 
         self.button = customtkinter.CTkButton(self.About_Us_Frame, text='About Us Frame!')
-        self.button.pack(side='top')
+        #self.button.pack(side='top')
     
     # 4. GitHub Button On-Click Action.
     def GitHub(self):
-        webbrowser.open("https://stackoverflow.com/questions/47926088/how-to-get-webbrowser-module-for-python-3-6-using-pip")
+        webbrowser.open("https://github.com/DhruvDabas/Sketch2Num/tree/main")
     
     # 5. Theme Mode Button On-Click Action.
     def Theme_Mode(self):
