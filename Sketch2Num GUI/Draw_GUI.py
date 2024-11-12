@@ -174,6 +174,10 @@ class Draw(customtkinter.CTkFrame):
         width = self.Canvas.winfo_width()
         height = self.Canvas.winfo_height()
 
+        # Preview Image.
+        PreviewImage = ImageGrab.grab((x, y, x + width, y + height))
+        PreviewImage.save('Preview.png')
+        
         # To Resize the Image into a Square.
         ReSize = round((width - height)/2)
 
@@ -210,6 +214,9 @@ class Draw(customtkinter.CTkFrame):
 
         self.ScreenShot_Button.forget()
         self.Predict_Button.pack(side = 'bottom', padx = 20, pady = 20)
+        self.Preview_Frame.pack(side = 'bottom', padx = 20, pady = 20)
+        self.Preview()
+
 
     def Predict(self):
         image_path = r'C:\Users\aryan\Downloads\Sketch2Num GUI\ScreenShot.png'
@@ -222,7 +229,23 @@ class Draw(customtkinter.CTkFrame):
         label.pack(padx=20, pady=20)
 
         self.Predict_Button.forget()
+        self.Preview_Frame.forget()
+        
         self.ScreenShot_Button.pack(side = 'bottom', padx = 20, pady = 20)
+
+
+    def Preview(self):
+        PreviewImage = customtkinter.CTkImage(
+            Image.open(r'C:\Users\aryan\Downloads\Sketch2Num GUI\Preview.png'),
+            size = [250, 200]
+        )
+
+        PreviewLabel = customtkinter.CTkLabel(
+            self.Preview_Frame,
+            text = '',
+            image = PreviewImage,
+        )
+        PreviewLabel.pack(padx = 0, pady = 0, side = 'top')
 
     def Tools(self):
         # Change Padding etc. in one place.
@@ -373,6 +396,14 @@ class Draw(customtkinter.CTkFrame):
             command = self.ScreenShot
         )
         self.ScreenShot_Button.pack(side = 'bottom', padx = 20, pady = 20)
+
+        # Preview Image for the User.
+        self.Preview_Frame = customtkinter.CTkFrame(
+            self.Menu_Frame,
+            width = 0,
+            height= 0,
+            fg_color = self.Menu_Frame.cget('fg_color'),
+        )
 
         # Run Mnist Model on the ScreenShot.
         self.Predict_Button = customtkinter.CTkButton(
