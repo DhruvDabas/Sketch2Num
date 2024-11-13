@@ -428,6 +428,3 @@ class Draw(customtkinter.CTkFrame):
     def PaletteOnLeave(self, ButtonName):
         Button = self.Color_Button_Dict.get(ButtonName)
         Button.configure(border_color = self.Menu_Frame.cget('fg_color'))
-
-        
-
