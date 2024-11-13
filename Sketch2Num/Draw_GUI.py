@@ -219,7 +219,7 @@ class Draw(customtkinter.CTkFrame):
 
 
     def Predict(self):
-        image_path = r'C:\Users\aryan\Downloads\Sketch2Num GUI\ScreenShot.png'
+        image_path = r'Sketch2Num GUI\ScreenShot.png'
         Number_Predicted = Model_Connector.PredictImage(image_path)
         
         new_window = customtkinter.CTkToplevel()
@@ -236,7 +236,7 @@ class Draw(customtkinter.CTkFrame):
 
     def Preview(self):
         PreviewImage = customtkinter.CTkImage(
-            Image.open(r'C:\Users\aryan\Downloads\Sketch2Num GUI\Preview.png'),
+            Image.open(r'Sketch2Num GUI\Preview.png'),
             size = [250, 200]
         )
 
