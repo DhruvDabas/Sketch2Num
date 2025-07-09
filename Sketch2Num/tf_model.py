@@ -54,21 +54,21 @@ early_stopping = tf.keras.callbacks.EarlyStopping(patience=10, restore_best_weig
 reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(factor=0.5, patience=5, min_lr=1e-7)
 
 # Training with data augmentation
-history = model.fit(
-   datagen.flow(mnist_images.reshape(-1, 28, 28, 1), mnist_labels, batch_size=32),
-   epochs=50,
-   validation_data=(test_images.reshape(-1, 28, 28, 1), test_labels),
-   callbacks=[early_stopping, reduce_lr],
-   verbose=1
-)
+# history = model.fit(
+#    datagen.flow(mnist_images.reshape(-1, 28, 28, 1), mnist_labels, batch_size=32),
+#    epochs=50,
+#    validation_data=(test_images.reshape(-1, 28, 28, 1), test_labels),
+#    callbacks=[early_stopping, reduce_lr],
+#    verbose=1
+# )
 
 # Evaluate on test set
-test_loss, test_accuracy = model.evaluate(test_images.reshape(-1, 28, 28, 1), test_labels, verbose=0)
-print(f"Test accuracy: {test_accuracy:.4f}")
-print(f"Test accuracy percentage: {test_accuracy*100:.2f}%")
+# test_loss, test_accuracy = model.evaluate(test_images.reshape(-1, 28, 28, 1), test_labels, verbose=0)
+# print(f"Test accuracy: {test_accuracy:.4f}")
+# print(f"Test accuracy percentage: {test_accuracy*100:.2f}%")
 
 # Save the model (saves architecture + weights + optimizer state)
-model.save('mnist_model.h5')
+# model.save('mnist_model.h5')
 
 # OR save just the weights
-model.save_weights('mnist_weights.h5')
+# model.save_weights('mnist_weights.h5')

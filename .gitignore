@@ -1,0 +1,16 @@
+# Ignore virtual environment
+venv/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+
+# Ignore image outputs
+ScreenShot.png
+Preview.png
+
+# Ignore system files
+.DS_Store
+
+.DS_Store
+.DS_Store
